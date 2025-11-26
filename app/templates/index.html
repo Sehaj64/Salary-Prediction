@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Employee Salary Prediction</h1>
+        <form action="{{ url_for('predict') }}" method="post">
+            
+            <div class="form-group">
+                <label for="College">College Tier</label>
+                <select id="College" name="College" required>
+                    <option value="3">Tier 1 (e.g., IIT, NIT, BITS)</option>
+                    <option value="2">Tier 2 (e.g., IIIT, SVNIT)</option>
+                    <option value="1">Tier 3 (e.g., Other colleges)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="City">City Type</label>
+                <select id="City" name="City" required>
+                    <option value="1">Metro City</option>
+                    <option value="0">Non-Metro City</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="Role">Role</label>
+                <select id="Role" name="Role" required>
+                    <option value="1">Manager</option>
+                    <option value="0">Executive</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="Previous CTC">Previous CTC (Annual Salary in INR)</label>
+                <input type="number" id="Previous CTC" name="Previous CTC" placeholder="e.g., 55000" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="Previous job change">Number of Previous Job Changes</label>
+                <input type="number" id="Previous job change" name="Previous job change" placeholder="e.g., 2" required>
+            </div>
+
+            <div class="form-group">
+                <label for="Graduation Marks">Graduation Marks (out of 100)</label>
+                <input type="number" id="Graduation Marks" name="Graduation Marks" placeholder="e.g., 75" required>
+            </div>
+
+            <div class="form-group">
+                <label for="EXP (Month)">Experience (in Months)</label>
+                <input type="number" id="EXP (Month)" name="EXP (Month)" placeholder="e.g., 24" required>
+            </div>
+
+            <button type="submit" class="btn">Predict Salary</button>
+        </form>
+        
+        {% if prediction_text %}
+            <div class="prediction">
+                <h2>{{ prediction_text }}</h2>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
