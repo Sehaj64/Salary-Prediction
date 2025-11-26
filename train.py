@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
@@ -15,31 +14,30 @@ cities = pd.read_csv("data/cities.csv")
 # --- Preprocessing ---
 print("Preprocessing data...")
 
-# College Tiers
-Tier1 = college["Tier 1"].tolist()
-Tier2 = college["Tier 2"].tolist()
-Tier3 = college["Tier 3"].tolist()
+# Create a mapping from college name to tier
+college_tier_map = {}
+for college_name in college["Tier 1"].dropna():
+    college_tier_map[college_name] = 3
+for college_name in college["Tier 2"].dropna():
+    college_tier_map[college_name] = 2
+for college_name in college["Tier 3"].dropna():
+    college_tier_map[college_name] = 1
 
-for item in df.College:
-    if item in Tier1:
-        df["College"].replace(item, 3, inplace=True)
-    elif item in Tier2:
-        df["College"].replace(item, 2, inplace=True)
-    elif item in Tier3:
-        df["College"].replace(item, 1, inplace=True)
+# Apply the mapping
+df['College'] = df['College'].replace(college_tier_map)
 
-# City Tiers
-metro = cities['Metrio City'].tolist()
-non_metro_cities = cities['non-metro cities'].tolist()
+# Create a mapping from city name to type
+city_type_map = {}
+for city_name in cities["Metrio City"].dropna():
+    city_type_map[city_name] = 1
+for city_name in cities["non-metro cities"].dropna():
+    city_type_map[city_name] = 0
 
-for item in df.City:
-    if item in metro:
-        df['City'].replace(item, 1, inplace=True)
-    elif item in non_metro_cities:
-        df['City'].replace(item, 0, inplace=True)
+# Apply the mapping
+df['City'] = df['City'].replace(city_type_map)
 
 # One-hot encode 'Role'
-df = pd.get_dummies(df, columns=['Role'], drop_first=True)
+df = pd.get_dummies(df, columns=['Role'], drop_first=True, dtype=int)
 
 # --- Feature and Target Split ---
 X = df.drop('CTC', axis=1)
@@ -57,7 +55,11 @@ X_test_scaled = scaler.transform(X_test)
 # --- Model Training ---
 print("Training Random Forest model...")
 # Using the best parameters found from GridSearchCV in the notebook
-model = RandomForestRegressor(n_jobs=-1, max_features=4, min_samples_split=2)
+model = RandomForestRegressor(
+    n_jobs=-1,
+    max_features=4,
+    min_samples_split=2
+)
 model.fit(X_train_scaled, y_train)
 
 # --- Evaluate and Print Score ---

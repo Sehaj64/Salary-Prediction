@@ -1,6 +1,5 @@
 from flask import Flask, request, render_template
 import joblib
-import numpy as np
 import pandas as pd
 import os
 
@@ -15,9 +14,11 @@ scaler_path = os.path.join(basedir, '../models/scaler.joblib')
 model = joblib.load(model_path)
 scaler = joblib.load(scaler_path)
 
+
 @app.route('/', methods=['GET'])
 def home():
     return render_template('index.html')
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -33,11 +34,11 @@ def predict():
             'EXP (Month)': int(request.form['EXP (Month)']),
             'Role_Manager': int(request.form['Role'])
         }
-        
+
         # --- Create DataFrame for prediction ---
         # The order of columns MUST match the order during training
         features = pd.DataFrame([form_data], columns=[
-            'College', 'City', 'Previous CTC', 'Previous job change', 
+            'College', 'City', 'Previous CTC', 'Previous job change',
             'Graduation Marks', 'EXP (Month)', 'Role_Manager'
         ])
 
@@ -46,14 +47,18 @@ def predict():
 
         # --- Make Prediction ---
         prediction = model.predict(scaled_features)
-        
+
         # Format the prediction for display
         output = f'{prediction[0]:,.2f}'
 
-        return render_template('index.html', prediction_text=f'Predicted Salary (CTC): ₹ {output}')
+        return render_template(
+            'index.html',
+            prediction_text=f'Predicted Salary (CTC): ₹ {output}'
+        )
 
     except Exception as e:
         return render_template('index.html', prediction_text=f'Error: {e}')
+
 
 if __name__ == "__main__":
     app.run(debug=True)
