@@ -1,15 +1,19 @@
-from flask import Flask, render_template, request, url_for, current_app
+from flask import Flask, render_template, request, url_for, current_app, g
 import joblib
 import numpy as np
 import os
 
-
 app = Flask(__name__)
 
-# Load the trained model and scaler
-model = joblib.load('../models/random_forest_model.joblib')
-scaler = joblib.load('../models/scaler.joblib')
+def get_model():
+    if 'model' not in g:
+        g.model = joblib.load('../models/random_forest_model.joblib')
+    return g.model
 
+def get_scaler():
+    if 'scaler' not in g:
+        g.scaler = joblib.load('../models/scaler.joblib')
+    return g.scaler
 
 @app.route('/')
 def home():
@@ -39,9 +43,11 @@ def predict():
                         exp_months, role]])
 
     # Scale the features
+    scaler = get_scaler()
     scaled_features = scaler.transform(features)
 
     # Make a prediction
+    model = get_model()
     prediction = model.predict(scaled_features)
 
     return render_template(

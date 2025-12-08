@@ -1,6 +1,5 @@
 import pytest
 from app.app import app
-import joblib
 import numpy as np
 
 
@@ -16,13 +15,14 @@ class DummyScaler:
 
 @pytest.fixture
 def client(monkeypatch):
-    def dummy_load(path):
-        if 'model' in path:
-            return DummyModel()
-        elif 'scaler' in path:
-            return DummyScaler()
+    def dummy_get_model():
+        return DummyModel()
 
-    monkeypatch.setattr(joblib, 'load', dummy_load)
+    def dummy_get_scaler():
+        return DummyScaler()
+
+    monkeypatch.setattr('app.app.get_model', dummy_get_model)
+    monkeypatch.setattr('app.app.get_scaler', dummy_get_scaler)
     app.config["TESTING"] = True
     with app.test_client() as client:
         yield client
