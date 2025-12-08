@@ -15,6 +15,12 @@ def home():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    data = request.get_json()   # or request.get_json(force=True)
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+
+def predict():
     # Get the data from the form
     college = int(request.form['college'])
     city = int(request.form['city'])
