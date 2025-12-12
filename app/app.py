@@ -5,7 +5,6 @@ import os
 
 app = Flask(__name__)
 
-# Get the absolute path to the directory of the current script
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 MODELS_DIR = os.path.join(APP_ROOT, '..', 'models')
 
@@ -29,7 +28,6 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Get the data from the form
         college = int(request.form['college'])
         city = int(request.form['city'])
         role = int(request.form['role'])
@@ -43,16 +41,13 @@ def predict():
             prediction_text='Invalid input. Please enter numeric values.'
         )
 
-    # Create a feature array for prediction
     features = np.array([[college, city, previous_ctc,
                         previous_job_change, graduation_marks,
                         exp_months, role]])
 
-    # Scale the features
     scaler = get_scaler()
     scaled_features = scaler.transform(features)
 
-    # Make a prediction
     model = get_model()
     prediction = model.predict(scaled_features)
 
@@ -66,7 +61,6 @@ def predict():
 
 @app.route('/analysis')
 def analysis():
-    # Get the list of plots
     plot_dir = current_app.static_folder
     plots = [
         url_for('static', filename=f)
@@ -77,4 +71,5 @@ def analysis():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0",debug=True)
+    

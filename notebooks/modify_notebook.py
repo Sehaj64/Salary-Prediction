@@ -8,7 +8,6 @@ try:
     with open(notebook_path, 'r', encoding='utf-8') as f:
         notebook_content = json.load(f)
 
-    # New markdown cell for placeholder data note
     new_markdown_cell = {
         'cell_type': 'markdown',
         'id': 'gemini-generated-note-data-placeholder',
@@ -25,15 +24,12 @@ try:
         ]
     }
 
-    # Insert the new markdown cell at the beginning if it's not already there
     if not notebook_content['cells'][0].get('id') == \
        'gemini-generated-note-data-placeholder':
         notebook_content['cells'].insert(0, new_markdown_cell)
 
-    # Find and modify the data loading cell
     modified_cell_count = 0
     for cell in notebook_content['cells']:
-        # Identify the cell by its ID or by a unique part of its source code
         is_target_cell = (
             cell.get('id') == 'f4ec1f61-3006-4fa5-a58d-9452bb32f2b3' or
             (cell.get('cell_type') == 'code' and any(
@@ -49,7 +45,7 @@ try:
                 'cities = pd.read_csv("data/cities.csv")'
             ]
             modified_cell_count += 1
-            break  # Assuming only one such cell
+            break
 
     if modified_cell_count == 0:
         print(

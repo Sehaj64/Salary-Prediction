@@ -58,9 +58,10 @@ tier3 = [
 ]
 
 max_len = max(len(tier1), len(tier2), len(tier3))
-tier1.extend([np.nan] * (max_len - len(tier1)))
-tier2.extend([np.nan] * (max_len - len(tier2)))
-tier3.extend([np.nan] * (max_len - len(tier3)))
+tier1.extend([''] * (max_len - len(tier1)))
+tier2.extend([''] * (max_len - len(tier2)))
+tier3.extend([''] * (max_len - len(tier3)))
+
 
 colleges_df = pd.DataFrame({
     'Tier 1': tier1,
@@ -79,8 +80,8 @@ non_metro_cities = [
 ]
 
 max_len = max(len(metro_cities), len(non_metro_cities))
-metro_cities.extend([np.nan] * (max_len - len(metro_cities)))
-non_metro_cities.extend([np.nan] * (max_len - len(non_metro_cities)))
+metro_cities.extend([''] * (max_len - len(metro_cities)))
+non_metro_cities.extend([''] * (max_len - len(non_metro_cities)))
 
 cities_df = pd.DataFrame({
     'Metro City': metro_cities,

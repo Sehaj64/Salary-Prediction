@@ -58,7 +58,6 @@ X_test_scaled = scaler.transform(X_test)
 print("Training Random Forest model...")
 
 
-# Using the best parameters found from GridSearchCV in the notebook
 model = RandomForestRegressor(
     max_features=4,
     min_samples_split=2

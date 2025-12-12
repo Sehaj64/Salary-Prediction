@@ -6,18 +6,13 @@ from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 import os
 
-# Create plots directory if it doesn't exist
 if not os.path.exists('plots'):
     os.makedirs('plots')
 
-# Read a CSV file into a DataFrame
 df = pd.read_csv("data/ML case Study.csv")
 college = pd.read_csv("data/Colleges.csv")
 cities = pd.read_csv("data/cities.csv")
 
-# --- Data Preprocessing ---
-
-# College
 Tier1 = college["Tier 1"].tolist()
 Tier2 = college["Tier 2"].tolist()
 Tier3 = college["Tier 3"].tolist()
@@ -30,7 +25,6 @@ for item in df.College:
     elif item in Tier3:
         df["College"].replace(item, 1, inplace=True)
 
-# City
 metro = cities['Metrio City'].tolist()
 non_metro_cities = cities['non-metro cities'].tolist()
 
@@ -40,39 +34,29 @@ for item in df.City:
     elif item in non_metro_cities:
         df['City'].replace(item, 0, inplace=True)
 
-# Role
 df = pd.get_dummies(df, drop_first=True)
 
-# --- EDA and Visualization ---
-
-# Box plot for Previous CTC
 sns.boxplot(df['Previous CTC'])
 plt.savefig('plots/previous_ctc_boxplot.png')
 plt.clf()
 
-# Box plot for Graduation Marks
 sns.boxplot(df['Graduation Marks'])
 plt.savefig('plots/graduation_marks_boxplot.png')
 plt.clf()
 
-# Box plot for EXP (Month)
 sns.boxplot(df['EXP (Month)'])
 plt.savefig('plots/exp_month_boxplot.png')
 plt.clf()
 
-# Box plot for CTC
 sns.boxplot(df['CTC'])
 plt.savefig('plots/ctc_boxplot.png')
 plt.clf()
 
-# Correlation Matrix and Heatmap
 corr = df.corr()
 plt.figure(figsize=(10, 8))
 sns.heatmap(corr, annot=True, cmap='coolwarm')
 plt.savefig('plots/correlation_heatmap.png')
 plt.clf()
-
-# --- Model Training ---
 
 X = df.loc[:, df.columns != 'CTC']
 y = df['CTC']
@@ -81,7 +65,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-# Linear Regression
 linear_reg = LinearRegression()
 linear_reg.fit(X_train, y_train)
 linear_reg_pred = linear_reg.predict(X_test)
@@ -92,7 +75,6 @@ print("MAE:", mean_absolute_error(y_test, linear_reg_pred))
 print("MSE:", mean_squared_error(y_test, linear_reg_pred))
 print("-" * 30)
 
-# Ridge Regression
 ridge = Ridge()
 ridge.fit(X_train, y_train)
 ridge_predict = ridge.predict(X_test)
@@ -103,7 +85,6 @@ print("MAE:", mean_absolute_error(y_test, ridge_predict))
 print("MSE:", mean_squared_error(y_test, ridge_predict))
 print("-" * 30)
 
-# Lasso Regression
 lasso = Lasso()
 lasso.fit(X_train, y_train)
 lasso_predict = lasso.predict(X_test)
