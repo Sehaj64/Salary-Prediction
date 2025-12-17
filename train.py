@@ -1,168 +1,119 @@
 import pandas as pd
+import numpy as np
+import os
+import joblib
+import argparse
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
-import joblib
-import os
-import argparse
-import numpy as np
+from sklearn.metrics import r2_score, mean_squared_error
 
-def load_data(data_path):
+def load_data(data_dir):
     """
-    Loads the main dataset from the given path.
-
-    Args:
-        data_path (str): Path to the main data CSV file (Salary Data.csv).
-
-    Returns:
-        pd.DataFrame: The loaded pandas DataFrame.
+    Loads and merges the main dataset with college and city mappings.
     """
-    print(f"Loading data from {data_path}...")
-    df = pd.read_csv(data_path)
-    return df
+    print("Loading data...")
+    main_path = os.path.join(data_dir, "ML case Study.csv")
+    colleges_path = os.path.join(data_dir, "Colleges.csv")
+    cities_path = os.path.join(data_dir, "cities.csv")
 
-def preprocess_data(df):
+    try:
+        df = pd.read_csv(main_path)
+        college_df = pd.read_csv(colleges_path)
+        cities_df = pd.read_csv(cities_path)
+        return df, college_df, cities_df
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        return None, None, None
+
+def preprocess_data(df, college_df, cities_df):
     """
-    Performs preprocessing and feature engineering on the data.
-
-    Args:
-        df (pd.DataFrame): The main DataFrame.
-
-    Returns:
-        tuple: A tuple containing the preprocessed features (X) and target (y).
+    Cleans and preprocesses the data for training.
     """
     print("Preprocessing data...")
     
-    # --- Data Cleaning ---
-    df.dropna(inplace=True)
-    df = df[df['Salary'] > 1000] # Remove outlier
-    
-    # --- Feature Engineering ---
-    
-    # Map Education Level to College Tier (1, 2, 3)
-    # Bachelor's -> 1, Master's -> 2, PhD -> 3 (Aligns with higher education = higher tier)
-    education_to_tier = {
-        "Bachelor's": 1,
-        "Master's": 2,
-        "PhD": 3,
-        "High School": 0, # Assuming no specific tier, treat as lowest
-        "Associate's Degree": 0 # Assuming no specific tier, treat as lowest
-    }
-    df['College'] = df['Education Level'].map(education_to_tier)
-    # Drop rows where education level couldn't be mapped
-    df.dropna(subset=['College'], inplace=True)
-    df['College'] = df['College'].astype(int)
+    # --- College Mapping ---
+    tier1 = college_df["Tier 1"].dropna().tolist()
+    tier2 = college_df["Tier 2"].dropna().tolist()
+    tier3 = college_df["Tier 3"].dropna().tolist()
 
-    # Convert Years of Experience to EXP (Month)
-    df['EXP (Month)'] = (df['Years of Experience'] * 12).astype(int)
+    college_map = {}
+    for c in tier1: college_map[c] = 3
+    for c in tier2: college_map[c] = 2
+    for c in tier3: college_map[c] = 1
 
-    # Simplify Job Title to Role (Manager/Executive) - heuristic approach
-    manager_keywords = ['Manager', 'Director', 'Head', 'Lead', 'VP', 'Chief', 'Principal']
-    df['Role'] = df['Job Title'].apply(
-        lambda x: 1 if any(keyword.lower() in x.lower() for keyword in manager_keywords) else 0
-    )
-    
-    # Synthesize 'Previous CTC' based on current Salary and Years of Experience (if needed for model)
-    # Assuming previous CTC is generally lower than current salary, and increases with experience
-    # This logic assumes 'Salary' is the current salary and we are deriving a 'Previous CTC'
-    df['Previous CTC'] = df['Salary'] / (1 + (df['Years of Experience'] * np.random.uniform(0.02, 0.08))) # Simulate annual raise
-    df['Previous CTC'] = df['Previous CTC'].round(2)
-    
-    # Synthesize 'Previous job change' based on Years of Experience
-    # More experience -> potentially more job changes
-    df['Previous job change'] = df['Years of Experience'].apply(
-        lambda x: np.random.randint(0, max(1, int(x / 5)))
-    ).astype(int)
-    
-    # Synthesize 'Graduation Marks' - assumed to be somewhat correlated with Education Level
-    # Random within a range for each education level
-    def get_graduation_marks(education_level):
-        if education_level == "Bachelor's":
-            return np.random.randint(60, 75)
-        elif education_level == "Master's":
-            return np.random.randint(70, 85)
-        elif education_level == "PhD":
-            return np.random.randint(75, 90)
-        else: # High School, Associate's Degree
-            return np.random.randint(40, 60)
-            
-    df['Graduation Marks'] = df['Education Level'].apply(get_graduation_marks)
-    df['Graduation Marks'] = df['Graduation Marks'].apply(
-        lambda x: x + np.random.randint(-5, 5)
-    ) # Add some noise
-    df['Graduation Marks'] = df['Graduation Marks'].clip(0, 100).astype(int) # Ensure marks are within 0-100
+    df['College'] = df['College'].map(college_map)
+    df['College'] = df['College'].fillna(1) # Default to Tier 1 if unknown
 
-    # City (simplification: assign based on Job Title or randomly)
-    # For simplicity and to fit existing model input, let's randomly assign Metro/Non-Metro
-    df['City'] = np.random.choice([0, 1], size=len(df)) # 0 for Non-Metro, 1 for Metro
+    # --- City Mapping ---
+    metro_cities = cities_df["Metro City"].dropna().tolist()
+    non_metro_cities = cities_df["non-metro cities"].dropna().tolist()
 
-    # Ensure all expected columns are present, even if no 'Manager' roles exist (from one-hot encoding logic)
-    # Here, 'Role' is already 0 or 1, so no one-hot encoding needed for the model input directly
+    city_map = {}
+    for c in metro_cities: city_map[c] = 1
+    for c in non_metro_cities: city_map[c] = 0
+
+    df['City'] = df['City'].map(city_map)
+    df['City'] = df['City'].fillna(0) # Default to Non-Metro
+
+    # --- Role Mapping (Manual One-Hot for consistency) ---
+    # The dataset has 'Role' column. We convert it to 'Role_Manager' (1 if Manager, 0 otherwise)
+    # This matches the 'get_dummies' logic but is safer for production
+    df['Role_Manager'] = df['Role'].apply(lambda x: 1 if 'Manager' in str(x) else 0)
+
+    # --- Feature Selection ---
+    # Select features that match the Streamlit app inputs
+    # Note: Streamlit app asks for 'Previous CTC', 'Previous job change', 'Graduation Marks', 'EXP (Month)'
+    feature_cols = ['College', 'City', 'Role_Manager', 'Previous CTC', 'Previous job change', 'Graduation Marks', 'EXP (Month)']
     
-    # Select final features for the model, matching the expected input of the Flask app
-    # The Flask app expects: College, City, Role, Previous CTC, Previous job change, Graduation Marks, EXP (Month)
-    # Ensure the order and names match
-    X = df[[
-        'College', 'City', 'Role', 'Previous CTC',
-        'Previous job change', 'Graduation Marks', 'EXP (Month)'
-    ]]
-    y = df['Salary']
+    # Drop rows with missing values in selected columns
+    df = df.dropna(subset=feature_cols + ['CTC'])
+    
+    X = df[feature_cols]
+    y = df['CTC']
     
     return X, y
 
-def train_model(X, y, model_path, scaler_path):
+def train_model(X, y, models_dir):
     """
-    Trains the RandomForestRegressor model and saves it and the scaler to files.
-
-    Args:
-        X (pd.DataFrame): The features.
-        y (pd.Series): The target.
-        model_path (str): The path to save the model to.
-        scaler_path (str): The path to save the scaler to.
+    Trains the Random Forest model and saves artifacts.
     """
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+    print("Splitting data...")
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     print("Scaling features...")
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    print("Training Random Forest Regressor model...")
-    model = RandomForestRegressor(
-        n_estimators=100, # Increased n_estimators for better performance
-        max_features=0.8, # Use a fraction of features for better generalization
-        min_samples_leaf=5, # Ensure each leaf has at least 5 samples
-        random_state=42, # Added for reproducibility
-        n_jobs=-1 # Use all available cores
-    )
+    print("Training Random Forest Regressor...")
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train_scaled, y_train)
 
-    score = model.score(X_test_scaled, y_test)
-    print(f"Model trained with R-squared score: {score:.4f}")
+    # Evaluate
+    preds = model.predict(X_test_scaled)
+    r2 = r2_score(y_test, preds)
+    mse = mean_squared_error(y_test, preds)
+    print(f"Model Trained. R2 Score: {r2:.4f}, MSE: {mse:.2f}")
 
-    print("Saving model and scaler objects...")
-    if not os.path.exists(os.path.dirname(model_path)):
-        os.makedirs(os.path.dirname(model_path))
-    joblib.dump(model, model_path)
-    joblib.dump(scaler, scaler_path)
-
-    print(f"Training complete. Model saved in '{model_path}' and scaler in '{scaler_path}'")
+    # Save
+    if not os.path.exists(models_dir):
+        os.makedirs(models_dir)
+        
+    joblib.dump(model, os.path.join(models_dir, 'random_forest_model.joblib'))
+    joblib.dump(scaler, os.path.join(models_dir, 'scaler.joblib'))
+    print(f"Model and Scaler saved to {models_dir}")
 
 def main():
-    """
-    Main function to run the training script.
-    """
-    parser = argparse.ArgumentParser(description="Train a salary prediction model.")
-    parser.add_argument("--data_path", type=str, default="C:\\Users\\Preet\\Salary Data.csv", help="Path to the main data CSV file (Salary Data.csv).")
-    parser.add_argument("--model_path", type=str, default="models/random_forest_model.joblib", help="Path to save the trained model.")
-    parser.add_argument("--scaler_path", type=str, default="models/scaler.joblib", help="Path to save the scaler object.")
-    args = parser.parse_args()
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(base_dir, 'data')
+    models_dir = os.path.join(base_dir, 'models')
 
-    df = load_data(args.data_path)
-    X, y = preprocess_data(df)
-    train_model(X, y, args.model_path, args.scaler_path)
+    df, college_df, cities_df = load_data(data_dir)
+    
+    if df is not None:
+        X, y = preprocess_data(df, college_df, cities_df)
+        train_model(X, y, models_dir)
 
 if __name__ == "__main__":
     main()

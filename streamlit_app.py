@@ -10,16 +10,15 @@ st.set_page_config(page_title="Salary Prediction App", layout="centered")
 # Define paths
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 MODELS_DIR = os.path.join(APP_ROOT, 'models')
-DATA_PATH = os.path.join(APP_ROOT, 'data', 'Salary_Data.csv')
+DATA_DIR = os.path.join(APP_ROOT, 'data')
 
-# Load Model and Scaler with caching
+# Load Model and Scaler
 @st.cache_resource
 def load_model_and_scaler():
     model_path = os.path.join(MODELS_DIR, 'random_forest_model.joblib')
     scaler_path = os.path.join(MODELS_DIR, 'scaler.joblib')
     
     if not os.path.exists(model_path) or not os.path.exists(scaler_path):
-        st.error("Model or Scaler not found. Please run 'train.py' locally first to generate them.")
         return None, None
         
     model = joblib.load(model_path)
@@ -28,86 +27,79 @@ def load_model_and_scaler():
 
 model, scaler = load_model_and_scaler()
 
-# Load data for dropdowns
+# Load Data for Dropdowns
 @st.cache_data
-def load_data():
-    if os.path.exists(DATA_PATH):
-        df = pd.read_csv(DATA_PATH)
-        df.dropna(inplace=True)
-        return df
-    else:
-        st.error(f"Data file not found at {DATA_PATH}")
-        return pd.DataFrame(columns=['Education Level', 'Job Title'])
+def load_dropdown_data():
+    try:
+        colleges_df = pd.read_csv(os.path.join(DATA_DIR, 'Colleges.csv'))
+        cities_df = pd.read_csv(os.path.join(DATA_DIR, 'cities.csv'))
+        return colleges_df, cities_df
+    except FileNotFoundError:
+        return None, None
 
-df = load_data()
+colleges_df, cities_df = load_dropdown_data()
 
-# Title and Description
 st.title("Salary Prediction App")
-st.write("Enter your details below to predict your estimated monthly salary.")
+st.write("Predict the monthly CTC based on candidate profile.")
 
-if not df.empty and model is not None and scaler is not None:
-    # Input Form
+if model is not None and scaler is not None and colleges_df is not None:
     with st.form("prediction_form"):
-        # Education Level
-        unique_education_levels = sorted(df['Education Level'].unique().tolist())
-        education_level = st.selectbox("Education Level", unique_education_levels)
+        # 1. College Input
+        # Get all colleges from Tier 1, 2, 3
+        tier1 = colleges_df["Tier 1"].dropna().tolist()
+        tier2 = colleges_df["Tier 2"].dropna().tolist()
+        tier3 = colleges_df["Tier 3"].dropna().tolist()
+        all_colleges = sorted(tier1 + tier2 + tier3)
         
-        # Job Title
-        unique_job_titles = sorted(df['Job Title'].unique().tolist())
-        job_title = st.selectbox("Job Title", unique_job_titles)
+        college_input = st.selectbox("College", all_colleges)
         
-        # Years of Experience
-        years_of_experience = st.number_input("Years of Experience", min_value=0.0, max_value=50.0, step=0.1, value=1.0)
+        # 2. City Input
+        metro = cities_df["Metro City"].dropna().tolist()
+        non_metro = cities_df["non-metro cities"].dropna().tolist()
+        all_cities = sorted(metro + non_metro)
         
-        # Previous CTC
+        city_input = st.selectbox("City", all_cities)
+        
+        # 3. Role Input
+        role_input = st.selectbox("Role", ["Manager", "Executive"])
+        
+        # 4. Numerical Inputs
         previous_ctc = st.number_input("Previous CTC (Annual)", min_value=0.0, step=1000.0, value=50000.0)
-        
-        # Previous Job Changes
         previous_job_change = st.number_input("Previous Job Changes", min_value=0, max_value=20, step=1, value=0)
+        graduation_marks = st.slider("Graduation Marks (%)", 0, 100, 60)
+        exp_years = st.number_input("Years of Experience", min_value=0.0, max_value=50.0, step=0.1, value=2.0)
         
-        # Graduation Marks
-        graduation_marks = st.slider("Graduation Marks (%)", min_value=0, max_value=100, value=60)
-        
-        # Submit Button
         submitted = st.form_submit_button("Predict Salary")
 
     if submitted:
-        # Preprocessing Logic (Matching app.py and train.py)
+        # Preprocessing inputs to match training logic
         
-        # Map Education to Tier
-        education_to_tier = {
-            "Bachelor's": 1,
-            "Master's": 2,
-            "PhD": 3,
-            "High School": 0,
-            "Associate's Degree": 0
-        }
-        college_tier = education_to_tier.get(education_level, 0)
+        # College Mapping
+        college_tier = 1 # Default
+        if college_input in tier1: college_tier = 3
+        elif college_input in tier2: college_tier = 2
+        elif college_input in tier3: college_tier = 1
         
-        # Calculate Exp Months
-        exp_months = int(years_of_experience * 12)
+        # City Mapping
+        city_score = 0 # Default non-metro
+        if city_input in metro: city_score = 1
         
-        # Determine Role
-        manager_keywords = ['Manager', 'Director', 'Head', 'Lead', 'VP', 'Chief', 'Principal']
-        role = 1 if any(keyword.lower() in job_title.lower() for keyword in manager_keywords) else 0
+        # Role Mapping
+        role_manager = 1 if role_input == "Manager" else 0
         
-        # City (Random assignment as per app.py logic)
-        city = np.random.choice([0, 1])
+        # Experience to Months
+        exp_months = int(exp_years * 12)
         
-        # Prepare Feature Array
-        # Order: 'College', 'City', 'Role', 'Previous CTC', 'Previous job change', 'Graduation Marks', 'EXP (Month)'
-        features = np.array([[college_tier, city, role, previous_ctc,
-                              previous_job_change, graduation_marks,
-                              exp_months]])
+        # Feature Array: ['College', 'City', 'Role_Manager', 'Previous CTC', 'Previous job change', 'Graduation Marks', 'EXP (Month)']
+        features = np.array([[college_tier, city_score, role_manager, previous_ctc, previous_job_change, graduation_marks, exp_months]])
         
-        # Scale Features
+        # Scale
         scaled_features = scaler.transform(features)
         
         # Predict
-        prediction = model.predict(scaled_features)
+        prediction = model.predict(scaled_features)[0]
         
-        # Display Result
-        st.success(f"Predicted Monthly Salary: ₹ {prediction[0]:,.2f}")
-        
+        st.success(f"Estimated Monthly CTC: ₹ {prediction:,.2f}")
+
 else:
-    st.warning("Application cannot run because dependencies (Model/Data) are missing.")
+    st.error("Model files or Data files missing. Please run 'train.py' locally first.")
