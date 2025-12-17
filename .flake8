@@ -1,0 +1,16 @@
+[flake8]
+exclude =
+    .git,
+    __pycache__,
+    models,
+    data,
+    plots,
+    notebooks,
+    venv,
+    .venv,
+    app/static
+max-line-length = 127
+max-complexity = 10
+count = True
+statistics = True
+show-source = True
