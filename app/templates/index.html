@@ -9,36 +9,32 @@
         <h1>Employee Salary Prediction</h1>
         <form action="/predict" method="post">
             <div class="form-group">
-                <label for="education_level">Education Level</label>
-                <select id="education_level" name="education_level" required>
-                    {% for edu in education_levels %}
-                        <option value="{{ edu }}">{{ edu }}</option>
-                    {% endfor %}
-                </select>
+                <label for="college_tier">College Tier (1=Tier 3, 2=Tier 2, 3=Tier 1)</label>
+                <input type="number" id="college_tier" name="college_tier" placeholder="e.g., 2" required min="1" max="3" step="1">
             </div>
             <div class="form-group">
-                <label for="job_title">Job Title</label>
-                <select id="job_title" name="job_title" required>
-                    {% for job in job_titles %}
-                        <option value="{{ job }}">{{ job }}</option>
-                    {% endfor %}
-                </select>
+                <label for="city_score">City Type (0=Non-Metro, 1=Metro)</label>
+                <input type="number" id="city_score" name="city_score" placeholder="e.g., 1" required min="0" max="1" step="1">
             </div>
             <div class="form-group">
-                <label for="years_of_experience">Years of Experience</label>
-                <input type="number" id="years_of_experience" name="years_of_experience" placeholder="e.g., 5" required min="0" max="30" step="0.5">
+                <label for="role_manager">Role Type (0=Executive, 1=Manager)</label>
+                <input type="number" id="role_manager" name="role_manager" placeholder="e.g., 0" required min="0" max="1" step="1">
             </div>
             <div class="form-group">
-                <label for="previous_ctc">Previous CTC (Monthly Salary in INR)</label>
-                <input type="number" id="previous_ctc" name="previous_ctc" placeholder="e.g., 55000" required min="10000" max="200000">
+                <label for="previous_ctc">Previous CTC (Annual)</label>
+                <input type="number" id="previous_ctc" name="previous_ctc" placeholder="e.g., 55000" required min="10000" max="200000" step="1000">
             </div>
             <div class="form-group">
                 <label for="previous_job_change">Number of Previous Job Changes</label>
-                <input type="number" id="previous_job_change" name="previous_job_change" placeholder="e.g., 2" required min="0" max="10">
+                <input type="number" id="previous_job_change" name="previous_job_change" placeholder="e.g., 2" required min="0" max="10" step="1">
             </div>
             <div class="form-group">
                 <label for="graduation_marks">Graduation Marks (out of 100)</label>
-                <input type="number" id="graduation_marks" name="graduation_marks" placeholder="e.g., 75" required min="0" max="100">
+                <input type="number" id="graduation_marks" name="graduation_marks" placeholder="e.g., 75" required min="0" max="100" step="1">
+            </div>
+            <div class="form-group">
+                <label for="exp_months">Experience (in Months)</label>
+                <input type="number" id="exp_months" name="exp_months" placeholder="e.g., 30" required min="0" max="600" step="1">
             </div>
             
             <button type="submit" class="btn">Predict Salary</button>

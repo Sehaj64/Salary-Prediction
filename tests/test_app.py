@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from app.app import app
 
 
 class DummyModel:
@@ -36,14 +37,15 @@ def test_home(client):
 
 
 def test_predict(client):
-    # Data matching the form fields in app/app.py
+    # Data matching the new numerical form fields in app/app.py
     data = {
-        'education_level': "Bachelor's",
-        'job_title': 'Software Engineer',
-        'years_of_experience': '2.5',
+        'college_tier': '2',
+        'city_score': '1',
+        'role_manager': '0',
         'previous_ctc': '50000',
         'previous_job_change': '1',
-        'graduation_marks': '75'
+        'graduation_marks': '75',
+        'exp_months': '30'
     }
     rv = client.post("/predict", data=data)
     assert rv.status_code == 200
