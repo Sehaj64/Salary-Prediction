@@ -1,6 +1,12 @@
 import pytest
-from app.app import app
+import sys
+import os
 import numpy as np
+
+# Ensure the project root is in sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.app import app  # noqa: E402
 
 
 class DummyModel:
