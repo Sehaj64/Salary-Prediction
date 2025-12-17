@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 MODELS_DIR = os.path.join(APP_ROOT, '..', 'models')
-DATA_PATH = "C:\\Users\\Preet\\Salary Data.csv" # Path to the original realistic data
+DATA_PATH = os.path.join(APP_ROOT, '..', 'data', 'Salary_Data.csv')
 
 def get_model():
     if 'model' not in g:
@@ -23,13 +23,22 @@ def get_scaler():
     return g.scaler
 
 # Load the full dataset to get unique values for mapping
-try:
-    full_df = pd.read_csv(DATA_PATH)
-    full_df.dropna(inplace=True)
-    full_df = full_df[full_df['Salary'] > 1000] # Consistent with train.py cleaning
-except FileNotFoundError:
-    print(f"Error: {DATA_PATH} not found. Ensure the data file is in the specified path.")
-    full_df = pd.DataFrame() # Create empty DataFrame to prevent further errors
+unique_education_levels = []
+unique_job_titles = []
+
+if os.path.exists(DATA_PATH):
+    try:
+        full_df = pd.read_csv(DATA_PATH)
+        full_df.dropna(inplace=True)
+        # full_df = full_df[full_df['Salary'] > 1000] # Optional cleaning
+        unique_education_levels = full_df['Education Level'].unique().tolist()
+        unique_job_titles = full_df['Job Title'].unique().tolist()
+    except Exception as e:
+        print(f"Error reading data: {e}")
+else:
+    print(f"Warning: {DATA_PATH} not found. Using default dropdowns.")
+    unique_education_levels = ["Bachelor's", "Master's", "PhD"]
+    unique_job_titles = ["Software Engineer", "Data Scientist", "Manager"]
 
 # Precompute mappings for features from the original data
 education_to_tier = {
@@ -39,10 +48,6 @@ education_to_tier = {
     "High School": 0,
     "Associate's Degree": 0
 }
-
-# Collect unique Job Titles and Education Levels for dropdowns if needed, though we map them internally
-unique_education_levels = full_df['Education Level'].unique().tolist()
-unique_job_titles = full_df['Job Title'].unique().tolist()
 
 @app.route('/')
 def home():
